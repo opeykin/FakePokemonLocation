@@ -4,8 +4,10 @@ package com.fat_trainer.fakepokemonlocation
 import android.app.IntentService
 import android.content.Context
 import android.content.Intent
+import android.location.Criteria
 import android.location.Location
 import android.location.LocationManager
+import android.location.LocationProvider
 import android.provider.Settings
 import android.util.Log
 import java.net.DatagramPacket
@@ -23,6 +25,7 @@ class LocationListenerService : IntentService("LocationListenerService") {
         super.onCreate()
         socket = DatagramSocket(12345)
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        executeWithMockAllowed { addFakeGpsProvider() }
     }
 
     override fun onDestroy() {
@@ -48,16 +51,34 @@ class LocationListenerService : IntentService("LocationListenerService") {
 
         Log.v(TAG, "Update location to: $latLon")
 
-        val value = setMockLocationSettings()
-        try {
+        executeWithMockAllowed {
             locationManager!!.setTestProviderLocation(LocationManager.GPS_PROVIDER, latLon.toGPSLocation())
-        } catch (e: SecurityException) {
-            e.printStackTrace()
-        } finally {
-            restoreMockLocationSettings(value)
         }
 
         return true
+    }
+
+    private fun addFakeGpsProvider() {
+        locationManager!!.addTestProvider(LocationManager.GPS_PROVIDER,
+                false, false, false, false, false, false, false,
+                Criteria.POWER_LOW,
+                Criteria.ACCURACY_HIGH)
+
+        locationManager!!.setTestProviderEnabled(LocationManager.GPS_PROVIDER, true)
+
+        locationManager!!.setTestProviderStatus(LocationManager.GPS_PROVIDER,
+                LocationProvider.AVAILABLE, null, System.currentTimeMillis())
+    }
+
+    private fun executeWithMockAllowed(action: () -> Unit) {
+        val mock_settings = Settings.Secure.getInt(contentResolver, Settings.Secure.ALLOW_MOCK_LOCATION)
+        try {
+            Settings.Secure.putInt(contentResolver, Settings.Secure.ALLOW_MOCK_LOCATION, 1)
+            action()
+        } finally {
+            Settings.Secure.putInt(contentResolver, Settings.Secure.ALLOW_MOCK_LOCATION, mock_settings)
+        }
+
     }
 
     private fun setMockLocationSettings(): Int {

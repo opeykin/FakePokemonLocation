@@ -19,14 +19,4 @@
   <component name="ProjectType">
     <option name="id" value="Android" />
   </component>
-  <component name="SbtLocalSettings">
-    <option name="modificationStamps">
-      <map>
-        <entry key="$USER_HOME$/study/scala/objsets" value="1462312046000" />
-      </map>
-    </option>
-    <option name="externalProjectsViewState">
-      <projects_view />
-    </option>
-  </component>
 </project>
